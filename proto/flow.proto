@@ -1,0 +1,147 @@
+syntax = "proto3";
+
+package flowdeck.v1;
+
+// FlowDeck operations console service.
+//
+// Three roles:
+//   viewer     - read everything, can list audit log
+//   operator   - viewer + ActOnRecord (resolve / reject / snooze)
+//   supervisor - operator + override / reopen records
+//
+// Authentication: JWT bearer in the `authorization` metadata header.
+// The gRPC interceptor reads the `role` claim.
+
+service FlowService {
+  // Paginated record listing with server-side faceted counts.
+  rpc ListRecords(ListRecordsRequest) returns (ListRecordsResponse);
+
+  // Single record by id.
+  rpc GetRecord(GetRecordRequest) returns (Record);
+
+  // Mutate a record (operator+).
+  rpc ActOnRecord(ActOnRecordRequest) returns (ActOnRecordResponse);
+
+  // Facet counts only, when the UI re-renders just the sidebar.
+  rpc GetFacets(GetFacetsRequest) returns (FacetCounts);
+
+  // Audit log tail for a record.
+  rpc ListAuditLog(ListAuditLogRequest) returns (ListAuditLogResponse);
+}
+
+// ----- enums -----
+
+enum RecordStatus {
+  RECORD_STATUS_UNSPECIFIED = 0;
+  RECORD_STATUS_OPEN = 1;
+  RECORD_STATUS_IN_PROGRESS = 2;
+  RECORD_STATUS_RESOLVED = 3;
+  RECORD_STATUS_REJECTED = 4;
+  RECORD_STATUS_SNOOZED = 5;
+}
+
+enum RecordPriority {
+  RECORD_PRIORITY_UNSPECIFIED = 0;
+  RECORD_PRIORITY_LOW = 1;
+  RECORD_PRIORITY_NORMAL = 2;
+  RECORD_PRIORITY_HIGH = 3;
+  RECORD_PRIORITY_URGENT = 4;
+}
+
+enum ActionType {
+  ACTION_TYPE_UNSPECIFIED = 0;
+  ACTION_TYPE_RESOLVE = 1;
+  ACTION_TYPE_REJECT = 2;
+  ACTION_TYPE_SNOOZE = 3;
+  ACTION_TYPE_REOPEN = 4;  // supervisor only
+  ACTION_TYPE_CLAIM = 5;
+}
+
+// ----- domain -----
+
+message Record {
+  string id = 1;
+  string title = 2;
+  string body = 3;
+  RecordStatus status = 4;
+  RecordPriority priority = 5;
+  string queue = 6;           // queue name, e.g. "billing-disputes"
+  string assignee = 7;        // user id, empty if unclaimed
+  string created_at = 8;      // RFC3339
+  string updated_at = 9;
+  int64 version = 10;         // for optimistic concurrency
+}
+
+message FacetBucket {
+  string value = 1;
+  int64 count = 2;
+}
+
+message FacetCounts {
+  repeated FacetBucket status = 1;
+  repeated FacetBucket priority = 2;
+  repeated FacetBucket queue = 3;
+}
+
+message ListRecordsRequest {
+  // filtering
+  repeated RecordStatus status = 1;
+  repeated RecordPriority priority = 2;
+  repeated string queue = 3;
+  string assignee = 4;
+  string search = 5;
+
+  // pagination
+  int32 page_size = 10;
+  string page_token = 11;
+}
+
+message ListRecordsResponse {
+  repeated Record records = 1;
+  string next_page_token = 2;
+  int64 total = 3;
+  FacetCounts facets = 4;
+}
+
+message GetRecordRequest {
+  string id = 1;
+}
+
+message ActOnRecordRequest {
+  string id = 1;
+  ActionType action = 2;
+  string note = 3;
+  int64 expected_version = 4;  // optimistic concurrency
+}
+
+message ActOnRecordResponse {
+  Record record = 1;
+}
+
+message GetFacetsRequest {
+  // optional pre-filtering, mirrors ListRecords
+  repeated RecordStatus status = 1;
+  repeated RecordPriority priority = 2;
+  repeated string queue = 3;
+  string search = 4;
+}
+
+message AuditEntry {
+  string id = 1;
+  string record_id = 2;
+  string actor = 3;
+  ActionType action = 4;
+  string note = 5;
+  string created_at = 6;
+}
+
+message ListAuditLogRequest {
+  string record_id = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+}
+
+message ListAuditLogResponse {
+  repeated AuditEntry entries = 1;
+  string next_page_token = 2;
+}
