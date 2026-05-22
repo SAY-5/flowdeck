@@ -23,9 +23,7 @@ node_modules/
 apps/web/dist/
 apps/web/.vite/
 
-# Generated proto stubs
-apps/api/flowdeck/gen/
-apps/web/src/gen/
+# Generated proto stubs are committed; regenerate with `make proto`.
 
 # Playwright
 apps/web/playwright-report/
