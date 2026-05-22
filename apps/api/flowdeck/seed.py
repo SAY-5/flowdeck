@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import random
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from flowdeck.config import get_settings
 from flowdeck.db import (
@@ -38,7 +38,7 @@ SAMPLE_TITLES = [
 
 def seed(session_factory, *, n: int = 80, seed_value: int = 7) -> None:
     rng = random.Random(seed_value)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     with session_factory() as session:
         if session.query(User).count() == 0:

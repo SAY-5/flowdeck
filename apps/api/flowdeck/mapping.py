@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from flowdeck.db import (
     ActionType as DbAction,
@@ -14,7 +14,6 @@ from flowdeck.db import (
     RecordStatus,
 )
 from flowdeck.gen import flow_pb2 as pb
-
 
 _STATUS_TO_PB = {
     RecordStatus.OPEN: pb.RECORD_STATUS_OPEN,
@@ -71,8 +70,8 @@ def action_from_pb(value: int) -> DbAction:
 
 def _rfc3339(dt: datetime) -> str:
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        dt = dt.replace(tzinfo=UTC)
+    return dt.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def record_to_pb(record: Record) -> pb.Record:

@@ -5,7 +5,7 @@ from __future__ import annotations
 import base64
 import uuid
 from collections.abc import Callable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import grpc
 from sqlalchemy import func, select
@@ -34,7 +34,6 @@ from flowdeck.mapping import (
     status_from_pb,
     status_to_pb,
 )
-
 
 # Action -> resulting status. None means "do not change status".
 _ACTION_TRANSITIONS: dict[DbAction, RecordStatus | None] = {
@@ -66,7 +65,7 @@ class FlowServicer(pb_grpc.FlowServiceServicer):
     def __init__(
         self,
         session_factory: sessionmaker[Session],
-        clock: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
+        clock: Callable[[], datetime] = lambda: datetime.now(UTC),
         page_size_default: int = 50,
         page_size_max: int = 200,
     ) -> None:
@@ -263,7 +262,9 @@ class FlowServicer(pb_grpc.FlowServiceServicer):
 
         return pb.FacetCounts(
             status=[
-                pb.FacetBucket(value=RecordStatus(s).value if isinstance(s, RecordStatus) else str(s), count=c)
+                pb.FacetBucket(
+                    value=RecordStatus(s).value if isinstance(s, RecordStatus) else str(s), count=c
+                )
                 for s, c in status_rows
             ],
             priority=[

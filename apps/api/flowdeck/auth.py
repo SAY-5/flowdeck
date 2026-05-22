@@ -76,7 +76,9 @@ class AuthInterceptor(grpc.ServerInterceptor):
 
         required = METHOD_ROLES.get(method)
         if required is None:
-            return _abort_handler(grpc.StatusCode.PERMISSION_DENIED, f"method not allowlisted: {method}")
+            return _abort_handler(
+                grpc.StatusCode.PERMISSION_DENIED, f"method not allowlisted: {method}"
+            )
         if not role_satisfies(principal.role, required):
             return _abort_handler(
                 grpc.StatusCode.PERMISSION_DENIED,
@@ -89,7 +91,9 @@ class AuthInterceptor(grpc.ServerInterceptor):
         return _wrap_with_principal(handler, principal)
 
 
-def _wrap_with_principal(handler: grpc.RpcMethodHandler, principal: Principal) -> grpc.RpcMethodHandler:
+def _wrap_with_principal(
+    handler: grpc.RpcMethodHandler, principal: Principal
+) -> grpc.RpcMethodHandler:
     """Re-pack the handler so the service sees `context.principal`."""
 
     def _attach(behavior):
